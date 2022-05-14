@@ -1,0 +1,132 @@
+---
+name: 'build images'
+on:
+  push:
+    branches:
+      - main
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@536b37ec5d5b543420bdfd9b744c5965bd4d8730
+        with:
+          cosign-release: 'v1.4.0'
+      # for multi arch container builds
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@master
+        with:
+          platforms: all
+      - name: Setup Docker buildx
+        id: buildx
+        timeout-minutes: 4
+        uses: docker/setup-buildx-action@91cb32d715c128e5f0ede915cd7e196ab7799b83
+      - name: Log into registry
+        if: github.event_name != 'pull_request'
+        timeout-minutes: 5
+        uses: docker/login-action@d398f07826957cd0a18ea1b059cf1207835e60bc
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract Docker metadata
+        id: meta
+        timeout-minutes: 5
+        uses: docker/metadata-action@8d56fe93cf3fd680736a906389438c1ed74d75f7
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+            type=raw,value={{date 'YYYYMMDD'}}-{{sha}}
+      - name: Build Docker image
+        id: build
+        timeout-minutes: 25
+        uses: docker/build-push-action@c5e6528d5ddefc82f682165021e05edf58044bce
+        with:
+          context: .
+          load: true
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Get Short SHA
+        id: short-sha
+        run: |
+          export SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "::set-output name=sha_short::$SHORT_SHA"
+          echo "::set-output name=sha_tag::${{ env.REGISTRY}}/${{ env.IMAGE_NAME }}:sha-$SHORT_SHA"
+        
+      - name: Scan image
+        id: scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.short-sha.outputs.sha_tag }}
+          format: 'sarif'
+          output: 'scan-results.sarif'
+      - name: Upload Container Scan SARIF report
+        if: ${{ env.CODEQL_ENABLED }}
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'scan-results.sarif'
+      - name: Build SBOM
+        id: sbom
+        run: |
+          npm run install:syft
+          npm run docker:sbom --image_tag=${{steps.short-sha.outputs.sha_tag}}
+      - name: Upload Container SBOM
+        timeout-minutes: 4
+        uses: actions/upload-artifact@v3
+        with:
+          path: sbom.json
+          name: sbom.json
+          retention-days: 30
+          if-no-files-found: error
+      - name: Export Container TAR
+        timeout-minutes: 4
+        run: |
+          set -e
+          set -x
+          mkdir -p /tmp/artifacts
+          docker save ${{ steps.short-sha.outputs.sha_tag }} -o /tmp/artifacts/image.tar
+          gzip -c /tmp/artifacts/image.tar > /tmp/artifacts/image.tar.gz
+      - name: Push image
+        if: github.event_name != 'pull_request'
+        id: push
+        timeout-minutes: 60
+        uses: docker/build-push-action@c5e6528d5ddefc82f682165021e05edf58044bce
+        with:
+          context: .
+          builder: ${{ steps.buildx.outputs.name }}
+          load: false
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+      - name: Sign the published Docker image
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: cosign sign --force --recursive ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
+      - name: Upload Container TAR
+        if: ${{ github.event_name == 'pull_request' }}
+        timeout-minutes: 4
+        uses: actions/upload-artifact@v3
+        with:
+          path: /tmp/artifacts/image.tar.gz
+          name: image.tar.gz
+          retention-days: 1
+          if-no-files-found: error
