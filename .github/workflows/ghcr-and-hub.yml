@@ -80,11 +80,6 @@ jobs:
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: 'scan-results.sarif'
-      - name: Build SBOM
-        id: sbom
-        run: |
-          npm run install:syft
-          npm run docker:sbom --image_tag=${{steps.short-sha.outputs.sha_tag}}
       - name: Upload Container SBOM
         timeout-minutes: 4
         uses: actions/upload-artifact@v3
