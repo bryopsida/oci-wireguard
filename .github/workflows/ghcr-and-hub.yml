@@ -80,14 +80,6 @@ jobs:
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: 'scan-results.sarif'
-      - name: Upload Container SBOM
-        timeout-minutes: 4
-        uses: actions/upload-artifact@v3
-        with:
-          path: sbom.json
-          name: sbom.json
-          retention-days: 30
-          if-no-files-found: error
       - name: Export Container TAR
         timeout-minutes: 4
         run: |
