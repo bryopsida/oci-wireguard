@@ -9,6 +9,11 @@ env:
   IMAGE_NAME: wireguard
 jobs:
   build-images:
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      security-events: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
