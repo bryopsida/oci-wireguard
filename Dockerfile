@@ -1,10 +1,12 @@
 FROM alpine:3.15
 
-RUN apk add --no-cache wireguard-tools
+RUN apk add --no-cache wireguard-tools sudo
 
 RUN addgroup -g 1000 wireguard && \
-  adduser -u 1000 -G wireguard -h /home/wireguard -D wireguard
+  adduser -u 1000 -G wireguard -h /home/wireguard -D wireguard && \
+  echo '%wheel ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/wheel && \
+  adduser wireguard wheel
 
 USER wireguard
 
-CMD ["/usr/bin/wg-quick", "up" "/etc/wireguard/wg0.conf"]
+CMD ["/usr/bin/wg-quick", "up", "/etc/wireguard/wg0.conf"]
