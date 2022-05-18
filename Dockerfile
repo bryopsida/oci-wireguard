@@ -8,5 +8,6 @@ RUN addgroup -g 1000 wireguard && \
   adduser wireguard wheel
 
 USER wireguard
-
-CMD ["/usr/bin/wg-quick", "up", "/etc/wireguard/wg0.conf"]
+WORKDIR /home/wireguard
+COPY ./Entrypoint.sh ./Entrypoint.sh
+CMD ["/usr/bin/sh", "-c", "/home/wireguard/Entrypoint.sh"]
