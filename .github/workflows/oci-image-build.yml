@@ -1,0 +1,18 @@
+---
+name: 'Build Wireguard Image'
+on:
+  schedule:
+    - cron: '22 4 * * *'
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  build:
+    name: 'OCI'
+    uses: curium-rocks/flows/.github/workflows/oci-build-image.yml@main
+    with:
+      registry: ghcr.io/bryopsida
+      image_name: wireguard
