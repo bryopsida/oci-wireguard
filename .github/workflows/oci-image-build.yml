@@ -15,4 +15,4 @@ jobs:
     uses: curium-rocks/flows/.github/workflows/oci-build-image.yml@main
     with:
       registry: ghcr.io/bryopsida
-      image_name: alpine-zulu
+      image_name: wireguard
