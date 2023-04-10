@@ -1,6 +1,7 @@
 ---
 name: 'Build Wireguard Image'
 on:
+  workflow_dispatch:
   schedule:
     - cron: '22 4 * * *'
   push:
