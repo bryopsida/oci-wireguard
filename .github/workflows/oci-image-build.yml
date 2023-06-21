@@ -14,6 +14,11 @@ jobs:
   build:
     name: 'OCI'
     uses: curium-rocks/flows/.github/workflows/oci-build-image.yml@main
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+      id-token: write
     with:
       registry: ghcr.io/bryopsida
       image_name: wireguard
