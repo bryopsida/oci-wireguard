@@ -1,0 +1,17 @@
+version: "2"
+
+services: 
+  wg:
+    image: ghcr.io/bryopsida/wireguard:${TAG:-main}
+    networks:
+      - test
+  sut:
+    depends_on:
+      - wg
+    build:
+      context: .
+      dockerfile: test.Dockerfile
+    networks:
+      - test
+networks:
+  test:
