@@ -22,3 +22,4 @@ jobs:
     with:
       registry: ghcr.io/bryopsida
       image_name: wireguard
+      platforms: 'linux/amd64,linux/arm64,linux/riscv64'
