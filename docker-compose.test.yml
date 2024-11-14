@@ -1,0 +1,33 @@
+version: "2"
+services:
+  httpbin:
+    image: kennethreitz/httpbin
+    expose:
+      - 80
+    networks:
+      - wg
+  wg:
+    image: ghcr.io/bryopsida/wireguard:${TAG:-main}
+    expose:
+      - 51820
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      net.ipv4.conf.all.src_valid_mark: 1
+    volumes:
+      - ./wg0.test.conf:/etc/wireguard/wg0.conf
+    networks:
+      - test
+      - wg
+  sut:
+    depends_on:
+      - wg
+    build:
+      context: .
+      dockerfile: test.Dockerfile
+    networks:
+      - test
+networks:
+  test:
+  wg:
