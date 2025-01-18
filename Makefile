@@ -7,4 +7,4 @@ image:
 
 .PHONY: test
 test:
-	$(COMPOSE_RUNNER) -f docker-compose.test.yml run sut
+	$(COMPOSE_RUNNER) -f docker-compose.test.yml run --build sut
