@@ -1,6 +1,6 @@
 FROM alpine:3.23
 
-RUN apk add --no-cache wireguard-tools sudo
+RUN apk add --no-cache wireguard-tools sudo iptables
 
 RUN addgroup -g 1000 wireguard && \
   adduser -u 1000 -G wireguard -h /home/wireguard -D wireguard && \
