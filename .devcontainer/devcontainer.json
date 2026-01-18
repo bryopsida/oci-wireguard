@@ -1,0 +1,7 @@
+{
+    "name": "Wireguard test environment",
+    "dockerComposeFile": "../docker-compose.test.yml",
+    "service": "sut",
+    "shutdownAction": "stopCompose",
+    "workspaceFolder": "/test-project"
+}
